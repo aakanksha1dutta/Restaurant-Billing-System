@@ -1,4 +1,5 @@
 Waiter will come to the table
+set password for 'binod'@'localhost' = 'mysql';
 
 # Menu
 FoodID: 1
