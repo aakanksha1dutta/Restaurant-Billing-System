@@ -9,38 +9,37 @@ order_id = 0
 billsTableName = "orders"
 menuTableName = "menu"
 
-
-
+# User Defined Functions/Methods
 def initialise():
+    """
+    Initialise values into the database
+    """
     global db
-    
+    exec(f"create database {databaseName};")
     exec(f"use {databaseName};")
 
-    # exec(f"drop table if exists {billsTableName};")
-    # exec(f"drop table if exists {orderTableName};")
-    # exec(f"drop table if exists {menuTableName};")
-    # #sql code for the tables
-    # exec(f"CREATE TABLE {billsTableName}(ORDERID INT, CUSTOMER_NAME CHAR(10))")
-    # exec(f"CREATE TABLE {orderTableName}(S_NO INT, FoodID INT, QTY INT, OrderID INT)")
-    # exec(f"CREATE TABLE {menuTableName} (FoodID INT, Food_Name CHAR(10), Price DECIMAL(7,2))")
+    exec(f"drop table if exists {billsTableName};")
+    exec(f"drop table if exists {orderTableName};")
+    exec(f"drop table if exists {menuTableName};")
 
+    exec(f"CREATE TABLE {billsTableName}(ORDERID INT, CUSTOMER_NAME CHAR(100))")
+    exec(f"CREATE TABLE {orderTableName}(S_NO INT, FoodID INT, QTY INT, OrderID INT)")
+    exec(f"CREATE TABLE {menuTableName} (FoodID INT, Food_Name CHAR(100), Price DECIMAL(7,2))")
 
-    #menudata TODO
-    # exec(f"INSERT INTO {menuTableName} VALUES (),(),(),()") #entertabledata
-    # exec(f"INSERT INTO {menuTableName} VALUES (1,'Cheese',10.20)")
-    # exec(f"INSERT INTO {menuTableName} VALUES (2,'Pasta',20.00)")
-    # exec(f"INSERT INTO {menuTableName} VALUES (3,'Maggi',30.50)")
-    exec(f"INSERT INTO {menuTableName} VALUES (1, ‘Chicken Tacos’, 570),(2, ’Extra Cheese Pizza’, 850),(3, ’Apple Pie’, 340),(4, ’Veg Lasagna’, 680),(5, ‘Strawberry Mousse, 360)")
+    exec(f"INSERT INTO {menuTableName} VALUES (1, 'Chicken Tacos', 570),(2, 'Cheese Pizza', 850),(3, 'Apple Pie', 340),(4, 'Veg Lasagna', 680),(5, 'Dark Mousse', 360)")
     db.commit()
 
-def iinput(text,accept_float=False): # only_integer_input Todo Document this in synopsis
+def iinput(text,accept_float=False):
+    """
+    A separate function for saving only numerical values from the user. 
+    """
     while True:
         try:
             if accept_float:
                 ret = float(input(text))
             else:
                 ret = int(input(text))
-            if ret <= 0:
+            if ret < 0:
                 print("Input number is negative!")
                 continue
         except ValueError:
@@ -52,20 +51,22 @@ def iinput(text,accept_float=False): # only_integer_input Todo Document this in 
     return ret
 
 def select_from_menu():
-    # Print everything from the menu
-    # Choose from the menu
+    """
+    Function for requesting list of items from the menu.
+    """
+
 
     print("*"*10,"Menu","*"*10)
-    MyCur.execute("select * from menu;")
+    MyCur.execute("SELECT * FROM menu;")
     data = MyCur.fetchall()
 
-    print("FoodId, Food Name, Price")
+    print("FoodId\t\t Item Name\t\t Price")
     for row in data:
-        print(row)
-
+        print(*row,sep="\t\t")
+    print()
     while True:
         choice = iinput("Pick food item [Enter FoodId]: ")
-        quantity = iinput("Enter Quantity:")
+        quantity = iinput("Enter Quantity: ")
         for row in data:
             if choice == row[0]:
                 break
@@ -77,6 +78,10 @@ def select_from_menu():
 
 
 def input_list(function):
+    """
+    A separate function to input values as list from the user. This function was created to minimize code organization.
+    """
+
     ret = []
 
     cont = 'y'
@@ -92,13 +97,19 @@ def input_list(function):
     return ret
 
 def exec(command):
+    """
+    Useful for debugging mysql functions, and reduces redundant code.
+    """
     # print(command) # for debugging
     MyCur.execute(command)
 
 def createorder():
+    """
+    Function to make an order in the database.
+    """
     global order_id, orderTableName, billsTableName
-    # TODO: Customer Name
-    customer_name = input("Customer Name: ")
+    
+    customer_name = input("Customer Name: ").strip()
     food_items = input_list(function=select_from_menu) #list of foodids
     
     food_dict = {}
@@ -123,8 +134,11 @@ def createorder():
 
 
 def editorder():
+    """
+    Function to edit current orders in the database.
+    """
     orderid = showorder(return_values="orderid")
-    exec(f"SELECT FoodId, QTY from {orderTableName} a, {menuTableName} b where a.FoodId = b.FoodId and a.orderid = {orderid};")
+    exec(f"SELECT a.FoodId, QTY from {orderTableName} a, {menuTableName} b where a.FoodId = b.FoodId and a.orderid = {orderid};")
     food_items = MyCur.fetchall()
 
     food_dict = {}
@@ -142,7 +156,7 @@ def editorder():
         else:
             food_dict[food] = qty
     
-    exec(f"DELETE FROM {orderTableName} WHERE order_id = {orderid}")
+    exec(f"DELETE FROM {orderTableName} WHERE orderid = {orderid}")
 
     for i, (food, qty) in enumerate(food_dict.items()):
         if qty <= 0:
@@ -153,14 +167,16 @@ def editorder():
     
 
 def showorder(return_values=None):
-
+    """
+    Shows all the current orders from the database
+    """
     print("Select OrderId from the database:")
     exec(f"SELECT * from {billsTableName};")
     data = MyCur.fetchall()
-    print("OrderId, Name")
+    print("OrderId\t Name")
     for row in data:
         orderid, name  = row
-        print(orderid, name)
+        print(orderid, name,sep="\t")
 
     while True:
         order_condition = iinput("Enter ORDERID: ")
@@ -174,10 +190,10 @@ def showorder(return_values=None):
         exec(f"SELECT Food_Name, QTY, Price from {orderTableName} a, {menuTableName} b where a.FoodId = b.FoodId and a.orderid = {order_condition};")
         data = MyCur.fetchall()
 
-        print("Item Name, Quantity, Cost, Price")
+        print("Name\t Qty.\t Cost\t Price")
         amount = 0
         for food, qty, price in data:
-            print(food, qty, price, price*qty)
+            print(food,qty, price, price*qty,sep="\t")
             amount+=price*qty
         print(f"Total amount: {amount}")
         break
@@ -187,24 +203,31 @@ def showorder(return_values=None):
     elif return_values == "orderid":
         return order_condition
     else:
-        input("Enter to Continue:")
+        input("Press Enter to continue: ")
 
 
 def finalbill():
+    """
+    Function to proceed with the transcation.
+    """
     amount = showorder(return_values="amount")
     print("\n"*2)
     print(f"\tYour total amount is {amount}")
 
     while True:
-        paid = iinput("\tHow much did customer pay?",accept_float=True)
+        paid = iinput("\tHow much did customer pay? ",accept_float=True)
         if paid < amount:
             print("Cash paid is less than total amount") 
             continue
         break
-    print(f"Change: {paid-amount}")
+    print(f"Change: {(paid)-float(amount)}")
     print("Transaction Successful!!")
 
+
 def main_menu():
+    """
+    Navigate through all the functions using a simple menu-based system.
+    """
     print("Welcome to AutoRestro- your very own automated restaurant billing system.")
     print("Choose your desired task for today—------->")
 
@@ -232,6 +255,8 @@ def main_menu():
         else:
             print("Wrong input!")
 
+
+# Main Code
 initialise()
 main_menu()
 
